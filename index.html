@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAT 竞调与陌拜执行包</title>
+<style>
+  :root{
+    --bg:#faf9f7; --card:#ffffff; --ink:#2b2b2b; --sub:#7a7a7a;
+    --line:#ecebe8; --accent:#e8734a; --accent-soft:#fdf0ea;
+    --teal:#2a9d8f; --teal-soft:#e9f6f4; --amber:#e9a13b; --amber-soft:#fcf3e3;
+    --blue:#5b7fb9; --blue-soft:#eef3fa; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;font-size:14.5px}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+  header{margin-bottom:22px}
+  header h1{font-size:24px;font-weight:700;letter-spacing:.5px}
+  header h1 span{color:var(--accent)}
+  header p{color:var(--sub);margin-top:4px;font-size:13.5px}
+  /* tabs */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
+  .tab{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 16px;font-size:13.5px;color:var(--sub);cursor:pointer;transition:.15s}
+  .tab:hover{color:var(--ink)}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .panel{display:none}
+  .panel.on{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  /* cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+  .card h2{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card h2 .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;flex:none}
+  .card p.note{color:var(--sub);font-size:13px;margin-bottom:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .tagline{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:600;margin-bottom:8px}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--teal-soft);font-weight:600;white-space:nowrap}
+  td .say{background:var(--blue-soft);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px}
+  td .ask{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px}
+  td .probe{color:var(--sub);font-size:12.5px}
+  .stagehead th{background:var(--amber-soft);color:#8a5a13;text-align:center;letter-spacing:2px}
+  /* persona table */
+  .kv th{width:120px;background:var(--blue-soft)}
+  /* collect table */
+  .ct input{width:100%;border:none;background:transparent;font:inherit;color:var(--ink);padding:2px 0;outline:none}
+  .ct input:focus{background:var(--amber-soft);border-radius:4px}
+  .ct td.field{width:130px;font-weight:600;background:#fbfaf8}
+  .ct td.cat{width:70px;color:var(--sub);font-size:12.5px;white-space:nowrap}
+  .ct td.how{width:200px;color:var(--sub);font-size:12px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  button.btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--ink);transition:.15s}
+  button.btn:hover{border-color:var(--accent);color:var(--accent)}
+  button.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.btn.pri:hover{opacity:.88;color:#fff}
+  button.btn.ghost{border-style:dashed;color:var(--sub)}
+  select,input[type=text],textarea{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;background:#fff;color:var(--ink);outline:none}
+  select:focus,input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+  textarea{width:100%;min-height:150px;resize:vertical;font-size:13px}
+  /* steps */
+  .steps{counter-reset:s}
+  .step{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .step::before{counter-increment:s;content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin-top:2px}
+  .step b{display:block;font-size:14px}
+  .step span{color:var(--sub);font-size:13px}
+  /* chips for extraction */
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--teal-soft);color:#1d6e64;border-radius:999px;padding:4px 12px;font-size:12.5px;margin:3px 4px 3px 0}
+  .chip b{font-weight:700}
+  .empty{color:var(--sub);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:10px;text-align:center}
+  /* product generator */
+  .stage-row{display:grid;grid-template-columns:1.1fr 1fr 1fr .9fr .9fr 1.2fr auto;gap:6px;margin-bottom:6px;align-items:center}
+  .stage-row input{width:100%;font-size:13px}
+  .stage-row .del{border:none;background:none;color:#d0636f;cursor:pointer;font-size:16px}
+  .lbl{font-size:12px;color:var(--sub);display:block;margin:8px 0 3px}
+  .out{background:#fffdf9;border:1px solid var(--line);border-radius:var(--radius);padding:22px 26px;min-height:200px;outline:none}
+  .out h3{font-size:15px;margin:14px 0 6px;color:var(--accent)}
+  .out table{margin:8px 0}
+  .out ul{padding-left:18px}
+  .hidden{display:none}
+  .foot{color:var(--sub);font-size:12px;text-align:center;margin-top:30px}
+  @media print{
+    .tabs,.toolbar,button{display:none!important}
+    .panel{display:block!important}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>SAT 竞调与陌拜 <span>执行包</span></h1>
+    <p>面向执行人（大学生）· 人设 → 话术 → 走访录音 → 转写填表 → 汇总比价，一站完成</p>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="t00">① 培训课件</button>
+    <button class="tab" data-t="t0">② 执行流程</button>
+    <button class="tab" data-t="t1">③ 人设设计</button>
+    <button class="tab" data-t="t2">④ 话术脚本</button>
+    <button class="tab" data-t="t3">⑤ 竞调采集表</button>
+    <button class="tab" data-t="t4">⑥ 录音转写整理</button>
+    <button class="tab" data-t="t5">⑦ 产品介绍生成器</button>
+  </div>
+
+  <!-- ============ T00 培训课件 ============ -->
+  <section class="panel on" id="t00">
+    <div class="card">
+      <h2><span class="n">训</span>上岗培训 · 先花 15 分钟读完这一页</h2>
+      <p class="note">本页内容整合自《需求调研》培训课件，并按本次 <b>SAT 竞调</b>场景做了落地适配。读完这一页，再按顺序看「② 执行流程」和「③ 人设设计」，即可出发；后面每个标签页都是你的随身工具。</p>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">1</span>什么是竞品调研？我们为什么要做？</h2>
+      <p><b>定义：</b>主要是对导入期竞争对手的市场经营情况与策略进行深入的调研分析。竞品分析一词最早源于经济学领域；市场营销和战略管理方面的竞品分析，是指对现有的或潜在的竞争产品的<b>优势和劣势进行评价</b>。</p>
+      <div class="grid2" style="margin-top:10px">
+        <table>
+          <tr><th>为什么要做竞品调研</th></tr>
+          <tr><td><b>战略上：</b>分析竞争对手产品的整体定位、产品策略，找到新的切入点</td></tr>
+          <tr><td><b>战术上：</b>了解对手的产品动作，为自己的产品制定合理的发展规划，比如产品架构、交互设计、视觉表现等</td></tr>
+        </table>
+        <table>
+          <tr><th>落到你这次的任务上</th></tr>
+          <tr><td>你拿回来的<b>课时、课次、阶段体系、价格</b>，是团队做产品架构与定价的直接依据</td></tr>
+          <tr><td>你观察到的<b>师资、服务、班型</b>，是找差异化切入点的素材</td></tr>
+          <tr><td style="background:var(--amber-soft);color:#8a5a13"><b>知己知彼，百战不殆</b>　Know thyself and thy adversary to win a hundred battles</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">2</span>调研的两个动作：信息搜集 & 陌拜</h2>
+      <div class="grid2">
+        <table>
+          <tr><th style="width:110px">动作</th><th>怎么做</th></tr>
+          <tr><td><b>信息搜集</b></td><td>出发前先在线上摸清机构公开信息（官网、点评、小红书、公众号），形成初步判断，避免进店后问外行问题</td></tr>
+          <tr><td><b>陌拜</b></td><td>以真实消费者身份进店，拿到对方<b>不会写在网上</b>的产品参数和报价；本次任务两个动作都要做</td></tr>
+        </table>
+        <table>
+          <tr><th colspan="2">本次 SAT 任务的交付与节奏</th></tr>
+          <tr><td style="width:90px"><b>交付</b></td><td>每家机构一份录音转写稿 + 一份填完的采集表（第⑤页）</td></tr>
+          <tr><td><b>节奏</b></td><td>每家停留 25-30 分钟，一天最多 2-3 家</td></tr>
+          <tr><td><b>范围</b></td><td>选 3-5 家目标机构，出发前查好地址</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">3</span>步骤 1 · 先想清楚：你想知道对方的什么？</h2>
+      <p class="note">调研第一步不是"问"，而是"想清楚要问什么"。以考培产品为例，本次要拿到的就是下面四类：</p>
+      <table>
+        <tr><th style="width:120px">要拿到的信息</th><th>具体问什么（详见第④页话术脚本）</th></tr>
+        <tr><td><b>课程体系</b></td><td>从 1100 分学到 1500 分，分几个阶段？各阶段叫什么班、多少课时、学多久？</td></tr>
+        <tr><td><b>上课参数</b></td><td>一次多少小时？一共上多少次？每周几次？寒暑假怎么加课？</td></tr>
+        <tr><td><b>价格</b></td><td>班课总价、合下来一小时多少钱（元/课时）、一对一价格</td></tr>
+        <tr><td><b>优惠政策</b></td><td>优惠内容和截止时间、缴费方式与退费规则</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">4</span>步骤 2 · 确定人设（最重要的一步）</h2>
+      <p class="note">人设不是编个身份，而是先把客户画像想清楚：谁要学？谁付钱？他们真正在意什么？</p>
+      <div class="grid2">
+        <table>
+          <tr><th colspan="2">① 客户群画像：按「能力 × 意愿」分四类</th></tr>
+          <tr><td style="width:120px">能力强 · 意愿强</td><td>主推效率与提分速度，可谈冲刺方案</td></tr>
+          <tr><td>能力强 · 意愿弱</td><td>需要先解决动机，再谈课程</td></tr>
+          <tr><td>能力弱 · 意愿强</td><td>强调基础提高、方法精练、要有监管</td></tr>
+          <tr><td>能力弱 · 意愿弱</td><td>最难转化，需要规划并灵活调整</td></tr>
+        </table>
+        <table>
+          <tr><th colspan="2">② 三类群体的特征与应对（15 岁 / 22 岁为分界）</th></tr>
+          <tr><td style="width:110px"><b>毕业后群体</b></td><td>时间管理差、英语基础差、自律性不强，但对未来有清晰认知、心智成熟 → 强调基础提高、方法精练、要有监管、需要规划并灵活调整</td></tr>
+          <tr><td><b>大学生群体</b></td><td>时间管理好、英语基础相对好、有一定自律性，开始考虑未来但迷茫、心智相对成熟</td></tr>
+          <tr><td><b>中学生群体</b></td><td>时间管理差、英语基础差、自律性差、爱玩不考虑未来、心智不成熟 → 强调基础提高、方法精练、要有监管、需要规划并灵活调整</td></tr>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <table>
+          <tr><th colspan="3">③ 不同群体的亲子关系：谁是学习方，谁是付钱方</th></tr>
+          <tr><td style="width:110px">群体</td><td style="width:90px">付钱方</td><td>亲子关系</td></tr>
+          <tr><td>毕业后群体</td><td>自己</td><td>无</td></tr>
+          <tr><td>大学生</td><td>家长 / 自己</td><td>家长一般管得少，有些甚至不愿意花很多钱</td></tr>
+          <tr><td>中学生</td><td>家长</td><td>家长管得很多，甚至是操碎了心</td></tr>
+        </table>
+        <table>
+          <tr><th colspan="2">④ 什么人会参加这个考试？</th></tr>
+          <tr><td style="width:110px">雅思</td><td>大部分出国的学生（高中 &amp; 大学）、打算移民的成年人、找工作的成年人</td></tr>
+          <tr><td>多邻国</td><td>雅思考不过去的学生、基础不是那么好的学生</td></tr>
+          <tr><td>PTE</td><td>雅思考不过去的学生、打算移民澳洲的成年人</td></tr>
+          <tr><td style="background:var(--accent-soft)"><b>SAT（本次）</b></td><td>申请美本的高中生：普高 / 国际学校 / 美高，付钱方是家长，家长参与度极高</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">5</span>步骤 2 的结论 · 本次 SAT 的人设</h2>
+      <p><b>课件给出的结论（以雅思为例）：</b>最好的人设是<b>国际学校高中生的家长</b>——因为家长了解孩子、对师资挑剔、需要监管、在意单课时价格、会对比多家机构、学生不喜欢大班课、能给的时间不多所以在意排课频次。</p>
+      <p class="note" style="margin-top:8px">落到本次 SAT 执行：道理完全一样（学习方是高中生、付钱方是家长、家长高度参与），但<b>执行人是你——在校大学生</b>，所以最自然的人设是下面这一条：</p>
+      <p style="margin:8px 0"><span class="tagline">本次人设：替弟弟考察 SAT 机构的在校大学生（姐姐 / 哥哥）</span></p>
+      <table>
+        <tr><th style="width:170px">课件里的客户特征</th><th>用这个人设怎么自然地问出来</th></tr>
+        <tr><td>家长对师资挑剔</td><td>"我弟底子一般，我最关心老师靠不靠谱" → 师资构成、是否换老师</td></tr>
+        <tr><td>学生需要监管</td><td>"他自律性差，你们平时怎么盯着？" → 督学、打卡、作业批改</td></tr>
+        <tr><td>在意排课时间和频次</td><td>"他还在上学，一次几小时？一周几次？" → 单次时长、课次、频率</td></tr>
+        <tr><td>会对比单课时价格</td><td>"合下来一小时多少钱？" → 综合单价（元/课时）</td></tr>
+        <tr><td>不喜欢大班课</td><td>"班课几个人封顶？" → 班型与班额</td></tr>
+        <tr><td>钱花到位就愿意花</td><td>"连报有没有优惠？优惠到什么时候？" → 优惠与时效</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">6</span>步骤 3 · 基于人设，进一步做好功课</h2>
+      <p class="note">人设定下来后，要把它"装"进自己的脑子里。这些问题的答案必须脱口而出（本次 SAT 落地版见第③页）：</p>
+      <div class="grid2">
+        <table>
+          <tr><th colspan="2">课件要求背熟的学生功课（原样）</th></tr>
+          <tr><td style="width:150px">哪个学校？</td><td>学校在哪？</td></tr>
+          <tr><td>什么年级？</td><td>学的是什么课程？（IG / AL / AP / IB）</td></tr>
+          <tr><td>学生成绩怎么样？</td><td>学校老师教得怎么样？</td></tr>
+          <tr><td>孩子的优势和劣势？</td><td>未来打算去什么国家？英文学习的期待？</td></tr>
+          <tr><td colspan="2">基本信息：姓名、年龄、性别</td></tr>
+        </table>
+        <table>
+          <tr><th colspan="2">本次 SAT 的落地口径（锁死，全程只认这一套）</th></tr>
+          <tr><td style="width:150px">年级 / 学校</td><td>高二，市里一所普通高中（不报校名）</td></tr>
+          <tr><td>现状</td><td>已考过一次，现在 <b>1100 分左右</b>，词汇和语法偏弱</td></tr>
+          <tr><td>目标</td><td>冲 1450-1500，申请美本 TOP50，明年 8 月前出分</td></tr>
+          <tr><td>家庭分工</td><td>爸妈上班忙，让我先跑一遍；学费家里出，我来对接</td></tr>
+          <tr><td colspan="2">被追问名字说小名即可，<b>不报全名、不留真实手机号</b></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">7</span>关于"人设"的其他元素：你能装出这种感觉吗？</h2>
+      <p class="note">课件提醒：人设不只是信息，还是一种气质——想想自己是否能"装"出这种感觉。</p>
+      <div class="grid2">
+        <table>
+          <tr><th>课件原文（以国际学校家长为例）</th></tr>
+          <tr><td>一般都认为自己是"上层社会"，多数做生意或在公司做管理层</td></tr>
+          <tr><td>很忙，且往往对顾问很不客气</td></tr>
+          <tr><td>经常是曾经撒手不管，突然又开始"紧抓"</td></tr>
+        </table>
+        <table>
+          <tr><th>本次 SAT 人设要装出的感觉</th></tr>
+          <tr><td>家里出钱、我来把关：<b>不拒绝也不承诺</b>，"我定不了，得回去跟爸妈商量"</td></tr>
+          <tr><td>礼貌但会追问细节：问得细、爱确认，关键数字当场复述</td></tr>
+          <tr><td>保持"外行"：懂太多反而可疑，专业术语请对方解释</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">8</span>沟通技巧与注意事项（课件原文四条 + 本次补充）</h2>
+      <table>
+        <tr><th style="width:60px">序号</th><th>要点</th></tr>
+        <tr><td>1</td><td><b>建议以"文字聊天"为主要形式：</b>可以仔细考虑询问问题和语言。<span class="probe">（本次线下陌拜改为：全程录音留存 → 转写稿粘贴到第⑥页自动提取，效果等同且更完整）</span></td></tr>
+        <tr><td>2</td><td><b>保持“无知”状态：</b>例如不懂需要考托福还是雅思，甚至以为两个都要考。<span class="probe">（本次：不懂 SAT 阶段怎么分、不懂课时怎么算，全让顾问解释）</span></td></tr>
+        <tr><td>3</td><td><b>该做测试题就要做测试题，要"配合"对方顾问。</b>配合度越高，对方越愿意把完整方案讲给你</td></tr>
+        <tr><td>4</td><td><b>目的是要课程的详细介绍，以及对于产品的其他信息。</b>在此基础上尽可能多要到其他内容——<span class="probe">咨询 SAT 的同时，顺带把托福 / AP 也了解了</span></td></tr>
+      </table>
+      <p style="margin-top:10px;color:#c0392b"><b>五条红线，一条都不能碰：</b>不提"竞调/调研"字眼 ｜ 不显露行业行话 ｜ 不留真实手机号（用备用号）｜ 不签任何文件 ｜ 不交一分钱</p>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">✓</span>培训自查 · 全部能答"是"再出发</h2>
+      <div id="checkList">
+        <label style="display:block;padding:5px 0;border-bottom:1px dashed var(--line);cursor:pointer"><input type="checkbox"> 我能说清这次要拿到的四类信息（课程体系 / 上课参数 / 价格 / 优惠政策）</label>
+        <label style="display:block;padding:5px 0;border-bottom:1px dashed var(--line);cursor:pointer"><input type="checkbox"> 我理解人设为什么这样定：学习方是高中生、付钱方是家长、家长参与度极高</label>
+        <label style="display:block;padding:5px 0;border-bottom:1px dashed var(--line);cursor:pointer"><input type="checkbox"> 我能脱口说出弟弟的完整档案（年级 / 学校 / 1100 分现状 / 目标 / 家庭分工）</label>
+        <label style="display:block;padding:5px 0;border-bottom:1px dashed var(--line);cursor:pointer"><input type="checkbox"> 我会保持“无知”状态，配合做测试题，并顺带多问其他产品</label>
+        <label style="display:block;padding:5px 0;cursor:pointer"><input type="checkbox"> 我记住五条红线：不提竞调、不行话、不真实号码、不签字、不交钱</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ T0 流程 ============ -->
+  <section class="panel" id="t0">
+    <div class="card">
+      <h2><span class="n">流</span>五步执行流程</h2>
+      <p class="note">第 ③④ 页先通读一遍再出门；每家到访控制在 25-30 分钟，一天最多 2-3 家。</p>
+      <div class="steps">
+        <div class="step"><div><b>出发准备</b><span>熟读人设与话术，选定 3-5 家目标机构并查好地址；手机充满电、清好存储，确认录音 App 可用。</span></div></div>
+        <div class="step"><div><b>进店破冰</b><span>按人设开场（替弟弟了解 SAT 机构），进门 2 分钟内自然开启录音。录音开头口播：机构名 + 日期 + 接待人姓名。</span></div></div>
+        <div class="step"><div><b>按链提问</b><span>按话术脚本顺序走，先用过渡话术衔接；关键数字（课时、课次、价格）当场复述确认。示例："您刚说是 72 课时、每周两次、一次两小时，对吗？"</span></div></div>
+        <div class="step"><div><b>离店转写</b><span>当天用语音转文字工具把录音转成文字稿，按"机构名-日期"命名。转写前先听一遍关键价格段，避免"七千/八千"听错。</span></div></div>
+        <div class="step"><div><b>对照填表</b><span>把转写稿粘贴到本页「⑥录音转写整理」自动提取关键信息并填入「⑤采集表」；转写稿里没有的字段标"未获"，列进下次补访清单。比价统一看"综合单价（元/课时）"。</span></div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2><span class="n">工</span>录音与转写工具</h2>
+        <table>
+          <tr><th style="width:80px">环节</th><th>推荐工具</th></tr>
+          <tr><td>录音</td><td>手机自带录音机 / 语音备忘录 / 钉钉 AI 听记（可边录边转写）；进店即录，全程别中断，手机往说话人方向挪一点。</td></tr>
+          <tr><td>转文字</td><td>钉钉 AI 听记、讯飞听见（免费额度）、通义听悟、飞书妙记、手机系统自带转写。SAT 分数段等英文词识别不准时手动补正。</td></tr>
+          <tr><td>填表</td><td>本网页「⑥录音转写整理」页粘贴转写稿 → 自动提取 → 一键填入「⑤采集表」，支持导出 CSV。</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2><span class="n">注</span>合规与注意事项</h2>
+        <ul style="padding-left:18px;color:var(--sub);font-size:13px">
+          <li>录音仅用于自己整理信息，勿对外传播；若机构前台明确反对录音，立即停止，改事后凭记忆补写。</li>
+          <li>全程保持"真实消费者"姿态：只问一个"弟弟备考"家庭会关心的内容，不谈行业内情、不评价同行。</li>
+          <li>不透露真实全名与常用手机号，不签任何文件、不交任何费用。</li>
+          <li>建议双人搭配：一人主问、一人旁听观察（学员情况、上课氛围、宣传物料），离店后合并信息。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ T1 人设 ============ -->
+  <section class="panel" id="t1">
+    <div class="card">
+      <h2><span class="n">设</span>一句话人设</h2>
+      <div class="tagline">替弟弟/表弟考察 SAT 培训机构的在校大学生（姐姐/哥哥）</div>
+      <p class="note">以"真实潜在客户"身份进店。亲属代为咨询是机构每天最常见的接待场景，最不易被怀疑。</p>
+      <table class="kv">
+        <tr><th>身份设定</th><td>国内本科在读（大二/大三），周末回家探亲顺便帮弟弟找辅导班。校名模糊处理，被追问就报一个普通大学名，态度随意。</td></tr>
+        <tr><th>来访理由</th><td>"弟弟准备申请美国本科，需要 SAT 成绩；爸妈上班忙，让我先出来把机构筛一遍。"——家庭常见分工，逻辑自洽。</td></tr>
+        <tr><th>性格气质</th><td>认真、礼貌、话多但<b>不懂行</b>，为弟弟操心、问得细、爱确认。适度"外行"是保护色：懂太多反而可疑。</td></tr>
+        <tr><th>决策链路</th><td>我先了解（今天）→ 带爸妈视频连线 / 周末带弟弟试听 → 全家商量后报名。为自然离场和"不立刻成交"提供合理出口。</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2><span class="n">档</span>弟弟档案（锁死口径，全流程只认这一套）</h2>
+      <table class="kv">
+        <tr><th>称呼</th><td>统一称"我弟"；被问名字说小名（如"小明"），不报全名</td></tr>
+        <tr><th>年级</th><td>高二（锁死，不更改；避免说太多露出矛盾）</td></tr>
+        <tr><th>学校</th><td>"市里一所普通高中"，不报具体校名</td></tr>
+        <tr><th>现状</th><td>已经考过一次，<b>现在 1100 分左右</b>（词汇和语法偏弱）——为问"分阶段提分体系"埋合理由头</td></tr>
+        <tr><th>目标</th><td>冲 1450-1500，申请美本 TOP50；明年 8 月前出分，所以现在开始看机构</td></tr>
+        <tr><th>家庭分工</th><td>爸妈上班忙，让我先跑一遍机构；学费家里出，但具体我来对接</td></tr>
+        <tr><th>关联信息</th><td>同一时间可能也在看托福/AP，可顺带了解机构综合实力</td></tr>
+      </table>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2><span class="n">答</span>应急应答表（被反问时用）</h2>
+        <table>
+          <tr><th style="width:110px">被问</th><th>标准回答</th></tr>
+          <tr><td>弟弟怎么没来？</td><td>"他在上学呢，今天还有课。我先了解清楚，回头带他来做测评试听。"</td></tr>
+          <tr><td>爸妈怎么没来？</td><td>"他们上班忙，让我先看看靠谱不靠谱，定了他俩再过来。"</td></tr>
+          <tr><td>你在哪上大学？</td><td>"在外地读大学，这次回来看看我弟。"语焉不详、随口带过即可。</td></tr>
+          <tr><td>今天能定吗？</td><td>"我定不了，得回去跟我爸妈商量，麻烦您把方案发我，回头让他们加您聊。"</td></tr>
+          <tr><td>还看了哪几家？</td><td>"刚在网上看了一圈，今天先来你们家，等会儿再去另一家看看。"货比三家是正常行为。</td></tr>
+          <tr><td>今天报名有优惠</td><td>"优惠挺好的，但我今天肯定定不了，能不能把这折扣给我留着？我节前给您准信。"顺便套出优惠时效。</td></tr>
+          <tr><td>你懂 SAT 吗？</td><td>"我就查了查考阅读、语法、数学那几块，细节真不懂，所以才来请教您。"保持外行，把话筒递回去。</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2><span class="n">红</span>红线清单（绝对不能做）</h2>
+        <table>
+          <tr><th style="width:70px">类别</th><th>禁止事项</th></tr>
+          <tr><td>身份</td><td>不提"竞调/调研/市场了解"等字眼，说"我先看看/了解一下"即可</td></tr>
+          <tr><td>专业度</td><td>不显露行业行话（出分率、转化、班科配比），所有术语让对方解释</td></tr>
+          <tr><td>记录</td><td>不拿本子大段记、不拍完整价目表；录音 + 少量随手备注，价目表自然索要纸质版</td></tr>
+          <tr><td>信息</td><td>不给真实全名、常用手机号；给备用微信/新号，说"回头让我妈加您"</td></tr>
+          <tr><td>行为</td><td>不贬损同行、不主动比较价格；被问就答"还在对比"</td></tr>
+          <tr><td>时间</td><td>每家停留不超过 30 分钟，到点自然收尾</td></tr>
+          <tr><td>底线</td><td>不签任何协议、不交押金定金，一切"等家里商量"推后</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ T2 话术 ============ -->
+  <section class="panel" id="t2">
+    <div class="card">
+      <h2><span class="n">逻</span>整体提问逻辑</h2>
+      <p class="note">
+        按 <b>信任建立 → 产品参数（阶段体系/课时/课次等核心）→ 价格 → 收尾离场</b> 四层推进。每个问题前先说"过渡话术"作引子，让提问像替弟弟考虑而不是查户口；关键数字务必当场复述确认。<br>
+        冷场或被反问时，切回万能句：<span class="tagline">"主要我弟情况您也了解了，我就想把这些打听明白点，回去好跟家里说。"</span>
+      </p>
+      <table>
+        <tr class="stagehead"><th colspan="4">一、破冰 · 建立信任（2-3 分钟）</th></tr>
+        <tr><th style="width:90px">Q1 亮身份</th><td><div class="say">进门微笑："您好，我弟弟准备申请美本，家里让我先出来看看 SAT 机构。"</div><div class="ask">"请问您这边主要是做 SAT 培训的吧？我主要想了解这一块。"</div><div class="probe">若对方说也做托福雅思："那 SAT 是你们的重点吗？之前考得比较多的是哪块？"｜采集：机构名称、主营业务</div></td></tr>
+        <tr><th>Q2 摸底规模</th><td><div class="say">"我特意搜了一下你们家，评价看着挺多的。"</div><div class="ask">"你们 SAT 这个项目做了多少年了？一年大概带多少学生？"</div><div class="probe">"最近一届学生出分怎么样？有没有提分之类的宣传？"｜采集：办学年限、学员规模、出分口碑</div></td></tr>
+        <tr><th>Q3 资质师资</th><td><div class="say">"我弟底子一般，我其实最关心老师靠不靠谱。"</div><div class="ask">"你们 SAT 老师是全职还是兼职？都是有经验的吗？"</div><div class="probe">"会不会中途换老师？能指定老师吗？"｜采集：师资构成、稳定性</div></td></tr>
+        <tr class="stagehead"><th colspan="4">二、产品参数 · 核心信息（10-15 分钟，本段是重点）</th></tr>
+        <tr><th>Q4 课程入口</th><td><div class="say">"我弟考过一次，1100 分左右，我估计得先测评看看从哪补吧？"</div><div class="ask">"像他这种情况，你们一般怎么安排课程？先测评再定班吗？"</div><div class="probe">"测评免费吗？多久出结果？"｜采集：入学测评、分班逻辑</div></td></tr>
+        <tr><th>Q5 班型人数</th><td><div class="say">"他还在校上课，我在想要不要报班课。"</div><div class="ask">"你们班课和一对一都有吧？班课大概几个人一个班？"</div><div class="probe">"小班是多少人封顶？人多了会不会照顾不过来？"｜采集：班型种类、班型人数</div></td></tr>
+        <tr style="background:var(--amber-soft)"><th>Q6 分数进阶体系<br><span style="font-weight:400;font-size:11px;color:#b06a1e">★ 新增重点</span></th><td><div class="say">"我从网上看 SAT 提分是一段一段来的，但不太懂怎么分。"</div><div class="ask">"像我弟现在 1100，想学到 1500 这个档，你们一般分几个阶段？每个阶段叫什么班？"</div><div class="probe">"每个阶段大概多少课时、学多久？是考到多少分才进下一阶段，还是按时间走？中间要不要重新报名？"｜采集：<b>阶段划分、各阶段课时与周期、进阶依据（按分还是按期）</b></td></tr>
+        <tr><th>Q7 单次课与课次</th><td><div class="say">"课时我得记清楚，回去好跟我爸妈算时间。"</div><div class="ask">"咱们上课的话，一般一次多少小时？这一共要上多少次？"</div><div class="probe">复述确认："您是说总共 XX 课时、分 XX 次、一次 X 小时，对吗？"｜采集：<b>总课时、总课次、单次时长</b></div></td></tr>
+        <tr><th>Q8 频率与周期</th><td><div class="say">"他平时要上学，我就想知道整条时间线怎么排。"</div><div class="ask">"一周上几次课？从开课到考完，整个周期大概几个月？"</div><div class="probe">"寒暑假是不是会加课？中间有休课吗？考前一个月会加模考吗？"｜采集：上课频率、课程周期、模考安排</div></td></tr>
+        <tr><th>Q9 教材资料</th><td><div class="say">"教材是用官方真题还是机构自己编的？"</div><div class="ask">"你们用的是什么教材？资料费另外算吗？"</div><div class="probe">"真题是网上能找的那种，还是你们整理的考点讲义？"｜采集：教材体系、是否含资料费</div></td></tr>
+        <tr><th>Q10 衔接连报</th><td><div class="say">"上完一个阶段就够了吗？还是要一路学上去？"</div><div class="ask">"基础之后还有强化、冲刺吧？一般要报几轮？"</div><div class="probe">"连报会不会有优惠？"（为价格阶段埋伏笔）｜采集：课程体系、轮次衔接</div></td></tr>
+        <tr class="stagehead"><th colspan="4">三、价格 · 先让对方报（5 分钟）</th></tr>
+        <tr><th>Q11 班课价格</th><td><div class="say">"聊得差不多了，我心里大概有数了。"（此时再提"和家里商量"）</div><div class="ask">"方便透露一下这种班的整体费用大概多少吗？"</div><div class="probe">若被反问预算："我没具体数，就是想先了解行情，您直接说平均情况就行。"｜采集：班课总价</div></td></tr>
+        <tr><th>Q12 单价换算</th><td><div class="say">"这个费用是打包价还是按课时算的？"</div><div class="ask">"合下来一小时多少钱？"</div><div class="probe">复述确认："那就是 XX 元/课时、总共 XX 课时，对吗？"｜采集：<b>综合单价（元/课时）</b>，横向比价统一用它</div></td></tr>
+        <tr><th>Q13 一对一价格</th><td><div class="say">"后面如果他想上一对一补短板呢？"</div><div class="ask">"一对一怎么收费？每小时多少钱？"</div><div class="probe">"一对一和班课价格差多少？"｜采集：1对1单价</div></td></tr>
+        <tr><th>Q14 优惠活动</th><td><div class="say">"最近有什么活动吗？我看你们门口好像贴着优惠。"</div><div class="ask">"现在报名有什么优惠？比如连报、早鸟、老带新？"</div><div class="probe">"这个优惠到什么时候截止？"｜采集：优惠条件、幅度、有效期</div></td></tr>
+        <tr><th>Q15 缴费退费</th><td><div class="say">"钱肯定是要给家里的，流程我得问清楚。"</div><div class="ask">"学费是一次性交齐吗？可以分期吗？"</div><div class="probe">"要是上了几节我弟不适应，退费怎么算？有合同模板吗？"｜采集：缴费方式、退费政策</div></td></tr>
+        <tr class="stagehead"><th colspan="4">四、收尾 · 自然离场（2 分钟）</th></tr>
+        <tr><th>Q16 索要资料</th><td><div class="say">"这些信息我记不全，带份资料回去更稳妥。"</div><div class="ask">"课程介绍和价目表，能给我一份纸质/电子版的吗？"</div><div class="probe">"麻烦您把方案也发我微信一份，我回家给爸妈看。"｜采集：资料物料</div></td></tr>
+        <tr><th>Q17 留联系方式</th><td><div class="say">"回头让我爸妈加您聊吧，他们拍板。"</div><div class="ask">"方便加个微信吗？我把我妈的号推给您？"（实际留备用号）</div><div class="probe">"您贵姓？怎么称呼您？"｜采集：接待人、联系方式</div></td></tr>
+        <tr><th>Q18 自然离场</th><td><div class="say">"行，那我回去跟家里商量，大概这周内给您答复。"</div><div class="ask">"回头确定了再带弟弟来做测评试听，谢谢您！"</div><div class="probe">礼貌离开，不再恋战；出门后立即补一句录音：机构名、接待人、大致价位。</div></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ T3 采集表 ============ -->
+  <section class="panel" id="t3">
+    <div class="card">
+      <h2><span class="n">表</span>竞调信息采集表（精简版 · 22 项）</h2>
+      <p class="note">填写口径：课时按"小时"、课次按"次"、价格按"元"；一家机构占一列，最多 3 家。数据自动保存在本机浏览器，可导出 CSV 交给汇总人。</p>
+      <div class="toolbar">
+        <button class="btn" onclick="exportCSV()">⬇ 导出 CSV</button>
+        <button class="btn" onclick="window.print()">🖨 打印空白表</button>
+        <button class="btn ghost" onclick="clearAll()">清空全部数据</button>
+      </div>
+      <table class="ct" id="ctTable"></table>
+    </div>
+  </section>
+
+  <!-- ============ T4 转写整理 ============ -->
+  <section class="panel" id="t4">
+    <div class="card">
+      <h2><span class="n">整</span>录音转写整理（粘贴即提取）</h2>
+      <p class="note">把当天转写稿整段粘贴到下面 → 点「开始提取」，自动抓出课时、课次、时长、频率、阶段、价格等关键信息 → 选择目标机构列，一键填入「⑤竞调采集表」。</p>
+      <textarea id="transcript" placeholder="示例：……顾问说他们是从 1100 到 1500 分三个阶段，基础班 40 课时，强化班 48 课时……一周上两次，一次 2 小时，班课一共 12800 元，合下来大概 150 元一课时……"></textarea>
+      <div class="toolbar" style="margin-top:10px">
+        <button class="btn pri" onclick="extract()">🔍 开始提取</button>
+        <select id="targetOrg">
+          <option value="0">填入 → 机构 1</option>
+          <option value="1">填入 → 机构 2</option>
+          <option value="2">填入 → 机构 3</option>
+        </select>
+        <button class="btn" onclick="applyExtract()">✅ 把提取结果填入选中机构列</button>
+      </div>
+      <div id="extractResult"><div class="empty">提取结果会显示在这里：每个关键信息一条，包括字段名和抓到的数值。</div></div>
+    </div>
+  </section>
+
+  <!-- ============ T5 产品介绍生成器 ============ -->
+  <section class="panel" id="t5">
+    <div class="card">
+      <h2><span class="n">参</span>第一步 · 填自己机构的产品参数</h2>
+      <div class="grid2" style="margin-bottom:6px">
+        <div><span class="lbl">机构 / 课程名称</span><input type="text" id="pgName" style="width:100%" placeholder="例：金吉列国际课程中心 SAT 冲分体系"></div>
+        <div><span class="lbl">一句话定位</span><input type="text" id="pgSlogan" style="width:100%" placeholder="例：按分数段进阶，每个阶段目标可量化"></div>
+      </div>
+      <span class="lbl">分数进阶体系（阶段 / 入分区间 / 目标分 / 课时 / 周期 / 价格）——可增删行</span>
+      <div id="stageRows"></div>
+      <button class="btn ghost" onclick="addStage()">＋ 加一个阶段</button>
+      <div class="grid2" style="margin-top:10px">
+        <div><span class="lbl">单次课时长 / 频率</span><input type="text" id="pgSched" style="width:100%" placeholder="例：一次 2 小时，每周 2 次"></div>
+        <div><span class="lbl">上课形式 / 教材</span><input type="text" id="pgForm" style="width:100%" placeholder="例：线下面授小班；官方真题+自编考点讲义"></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><span class="lbl">服务包含</span><input type="text" id="pgSvc" style="width:100%" placeholder="例：入学测评、模考 4 次、助教督学、家长周报"></div>
+        <div><span class="lbl">销售话术要点（每行一条）</span><textarea id="pgTalk" style="min-height:70px" placeholder="例：先测评定位，再按阶段报名，家长只为一阶段付费，风险可控">先测评定位，再按阶段报名，家长只为一阶段付费，风险可控
+每阶段有目标分与结课模考，达不达标看得见</textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="n">文</span>第二步 · 上传你的产品介绍文档（可选）</h2>
+      <p class="note">支持 .txt / .md 纯文本（Word 文档请先全选复制粘贴到下面文本框）。上传或粘贴的内容会作为「详情正文」并入最终介绍。</p>
+      <div class="toolbar">
+        <input type="file" id="pgFile" accept=".txt,.md,.markdown,.csv" style="font-size:13px">
+        <button class="btn ghost" onclick="document.getElementById('pgDoc').value='';showDocCleared()">清除已上传内容</button>
+      </div>
+      <textarea id="pgDoc" placeholder="或直接把产品介绍全文粘贴在这里……"></textarea>
+    </div>
+    <div class="card">
+      <h2><span class="n">成</span>第三步 · 生成综合产品介绍</h2>
+      <div class="toolbar">
+        <button class="btn pri" onclick="generate()">✨ 生成综合介绍</button>
+        <button class="btn" onclick="copyOut()">📋 复制全文</button>
+        <button class="btn" onclick="downloadDoc()">⬇ 导出 Word（.doc）</button>
+      </div>
+      <div class="out" id="pgOut" contenteditable="true"><div class="empty">生成的综合产品介绍会出现在这里，可直接点击修改，再复制或导出。</div></div>
+    </div>
+  </section>
+
+  <div class="foot">SAT 竞调与陌拜执行包 · 数据仅保存在本机浏览器 · 录音仅供内部整理，请勿外传</div>
+</div>
+
+<script>
+/* ---------------- tabs ---------------- */
+document.getElementById('tabs').addEventListener('click', function(e){
+  var b = e.target.closest('.tab'); if(!b) return;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
+  b.classList.add('on');
+  document.getElementById(b.dataset.t).classList.add('on');
+});
+
+/* ---------------- 采集表 ---------------- */
+var FIELDS = [
+  ['A 基础信息','机构名称','全称，如"xx教育/xx出国"'],
+  ['A 基础信息','校区/地址','具体到门牌或商圈，如"国贸写字楼B座"'],
+  ['A 基础信息','到访日期','YYYY-MM-DD'],
+  ['A 基础信息','接待人','职务（课程顾问/销售）+称呼'],
+  ['A 基础信息','联系方式','微信/电话；注意：留自己的备用方式'],
+  ['A 基础信息','主营业务','SAT/托福/雅思/AP 哪些是重点'],
+  ['B 概况与师资','办学年限与规模','SAT 项目年数、年学员量级'],
+  ['B 概况与师资','师资与出分口碑','全职比例+平均教龄；是否承诺不换老师；出分宣传口径'],
+  ['C 课程参数','分数进阶体系 ★','1100→1500 分几个阶段？各阶段班型/课时/周期？按分进阶还是按期？'],
+  ['C 课程参数','班型与班额','基础/强化/冲刺有哪些；班课人数封顶'],
+  ['C 课程参数','课时与课次','总课时(h)/共几次/一次几小时/每周几次（四项一并记）'],
+  ['C 课程参数','课程周期','起止月份或总时长，如"7月-10月，约4个月"'],
+  ['C 课程参数','上课形式','线下面授/线上直播/混合'],
+  ['C 课程参数','教材与资料费','官方真题/自编讲义；资料费是否另收'],
+  ['C 课程参数','模考安排','是否含模考、次数、是否单独收费'],
+  ['C 课程参数','测评与试听','有无免费测评/试听；结果是否用于分班'],
+  ['D 价格','班课总价','区分班型多记几档，如"基础班 12800 元"'],
+  ['D 价格','综合单价','元/课时 = 总价 ÷ 课时数（横向比价统一口径）'],
+  ['D 价格','1对1单价','元/小时；是否分老师档次'],
+  ['D 价格','优惠与截止','名称、条件、幅度、截止日期'],
+  ['D 价格','缴费与退费','一次性/分期；退费比例、扣费规则'],
+  ['E 服务与记录','督学与待补问题','作业批改/打卡/答疑是否含；本次未获取项列在此，下次补齐']
+];
+var LSKEY = 'sat_dd_v1';
+var store = JSON.parse(localStorage.getItem(LSKEY) || '{}');
+
+function save(){ localStorage.setItem(LSKEY, JSON.stringify(store)); }
+function buildTable(){
+  var t = document.getElementById('ctTable');
+  var h = '<tr><th style="width:70px">分类</th><th style="width:130px">采集字段</th><th style="width:200px">填写口径</th><th>机构 1</th><th>机构 2</th><th>机构 3</th></tr>';
+  FIELDS.forEach(function(f,i){
+    h += '<tr><td class="cat">'+f[0]+'</td><td class="field">'+f[1]+'</td><td class="how">'+f[2]+'</td>';
+    for(var c=0;c<3;c++){
+      var v = (store[i+'_'+c]||'').replace(/"/g,'&quot;');
+      h += '<td><input data-k="'+i+'_'+c+'" value="'+v+'"></td>';
+    }
+    h += '</tr>';
+  });
+  t.innerHTML = h;
+  t.addEventListener('input', function(e){
+    var inp = e.target; if(inp.tagName!=='INPUT') return;
+    store[inp.dataset.k] = inp.value; save();
+  });
+}
+function clearAll(){
+  if(!confirm('确定清空采集表全部已填数据吗？')) return;
+  store = {}; save(); buildTable();
+}
+function exportCSV(){
+  var rows = [['分类','采集字段','填写口径','机构1','机构2','机构3']];
+  FIELDS.forEach(function(f,i){
+    rows.push([f[0],f[1],f[2],store[i+'_0']||'',store[i+'_1']||'',store[i+'_2']||'']);
+  });
+  var csv = '\ufeff' + rows.map(function(r){
+    return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',');
+  }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'SAT竞调信息采集表.csv'; a.click();
+}
+buildTable();
+
+/* ---------------- 转写提取 ---------------- */
+var LAST = {};
+function extract(){
+  var txt = document.getElementById('transcript').value;
+  var res = document.getElementById('extractResult');
+  if(!txt.trim()){ res.innerHTML = '<div class="empty">请先粘贴转写稿。</div>'; return; }
+  LAST = {};
+  var chips = [];
+  function grab(key, label, re, fmt){
+    var m = txt.match(re);
+    if(m){ var v = fmt ? fmt(m) : m[1]; if(v){ LAST[key]=v; chips.push('<span class="chip"><b>'+label+'</b>：'+v+'</span>'); } }
+  }
+  grab('name','机构名', /(?:机构|学校|他们|你们)?(?:叫|是|名字叫)([\u4e00-\u9fa5A-Za-z]{2,12}(?:教育|国际|出国|留学|学院|培训)[\u4e00-\u9fa5]{0,6})/);
+  grab('stages','分数阶段体系', /(分|分为?|划[分为]{1,2})\s*(\d|一|二|三|四|五|两)\s*(个)?\s*(?:阶段|期|段)/, function(m){
+    var map={'一':'1','二':'2','两':'2','三':'3','四':'4','五':'5'};
+    return (map[m[2]]||m[2]) + ' 个阶段（建议在表内补记各阶段课时/周期）';
+  });
+  grab('hours','总课时', /(\d+)\s*(?:个)?\s*课时/);
+  grab('times','总课次', /(\d+)\s*(?:个)?\s*(?:节|次)课/);
+  grab('perlen','单次时长', /(?:一次|每次|单次)\s*(\d+(?:\.\d+)?)\s*(?:个)?\s*小时/, function(m){return m[1]+' 小时/次';});
+  if(!LAST['perlen']) grab('perlen','单次时长', /(\d+(?:\.\d+)?)\s*(?:个)?\s*小时(?:一|1)?\s*次/, function(m){return m[1]+' 小时/次';});
+  grab('freq','上课频率', /(?:一周|每周|一个星期)\s*(\d+)\s*次/, function(m){return '每周 '+m[1]+' 次';});
+  grab('months','课程周期', /(\d+)\s*个?\s*月/, function(m){return '约 '+m[1]+' 个月';});
+  grab('price','班课总价', /(\d+(?:\.\d+)?)\s*(?:万|w)\s*(?:元)?/i, function(m){return (parseFloat(m[1])*10000)+' 元';});
+  grab('price','班课总价', /(\d{4,6})\s*(?:元|块钱)/, function(m){return m[1]+' 元';});
+  grab('unit','综合单价', /(\d+(?:\.\d+)?)\s*(?:元)?\s*(?:一|每|\/|1)\s*(?:个)?课时/, function(m){return m[1]+' 元/课时';});
+  grab('one2one','1对1单价', /一对一[^\d]{0,12}(\d{2,4})\s*(?:元|块)/, function(m){return m[1]+' 元/小时';});
+  var disc = txt.match(/[^。；;，,]{0,30}(?:优惠|折扣|活动|减免|立减)[^。；;]{0,40}/);
+  if(disc){ LAST['discount']=disc[0].trim(); chips.push('<span class="chip"><b>优惠信息</b>：'+disc[0].trim()+'</span>'); }
+  res.innerHTML = chips.length
+    ? '<p style="margin-bottom:6px;color:var(--sub);font-size:13px">共提取 '+chips.length+' 条：</p>'+chips.join('')
+    : '<div class="empty">没有抓到关键数字。可检查转写稿里是否提到"课时/小时/元/每周几次"等关键词，或手动填入采集表。</div>';
+}
+function applyExtract(){
+  if(!Object.keys(LAST).length){ alert('请先点「开始提取」。'); return; }
+  var c = document.getElementById('targetOrg').value;
+  var map = {name:'0_0', stages:'8_'+c, hours:'10_'+c, times:'10_'+c, perlen:'10_'+c, freq:'10_'+c,
+             months:'11_'+c, price:'16_'+c, unit:'17_'+c, one2one:'18_'+c, discount:'19_'+c};
+  var n = 0;
+  Object.keys(LAST).forEach(function(k){
+    var key = map[k]; if(!key) return;
+    if(k==='hours'){ store[key] = (store[key]?store[key]+'；':'')+'总课时 '+LAST[k]; }
+    else if(k==='times'){ store[key] = (store[key]?store[key]+'；':'')+'共 '+LAST[k]+' 次'; }
+    else if(k==='perlen'){ store[key] = (store[key]?store[key]+'；':'')+LAST[k]; }
+    else if(k==='freq'){ store[key] = (store[key]?store[key]+'；':'')+LAST[k]; }
+    else { store[key] = LAST[k]; }
+    n++;
+  });
+  save(); buildTable();
+  alert('已把 '+n+' 条信息填入机构 '+(Number(c)+1)+' 列，可在「⑤竞调采集表」中核对修改。');
+}
+
+/* ---------------- 产品介绍生成器 ---------------- */
+var stageSeed = [
+  ['基础阶段','1000-1150','1250+','40 课时','约 6 周','¥xxxx'],
+  ['强化阶段','1150-1300','1400+','48 课时','约 8 周','¥xxxx'],
+  ['冲刺阶段','1300-1450','1500+','32 课时','约 6 周','¥xxxx']
+];
+function addStage(row){
+  var box = document.getElementById('stageRows');
+  var vals = row || ['','','','','',''];
+  var d = document.createElement('div');
+  d.className = 'stage-row';
+  d.innerHTML = vals.map(function(v){return '<input type="text" value="'+String(v).replace(/"/g,'&quot;')+'">'}).join('')
+    + '<button class="del" title="删除该阶段">×</button>';
+  d.querySelector('.del').onclick = function(){ d.remove(); };
+  box.appendChild(d);
+}
+stageSeed.forEach(function(r){ addStage(r); });
+
+function getStages(){
+  return Array.prototype.map.call(document.querySelectorAll('#stageRows .stage-row'), function(d){
+    var ins = d.querySelectorAll('input');
+    return Array.prototype.map.call(ins, function(i){return i.value.trim()});
+  });
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function generate(){
+  var name = document.getElementById('pgName').value.trim() || '我们的 SAT 课程体系';
+  var slogan = document.getElementById('pgSlogan').value.trim();
+  var sched = document.getElementById('pgSched').value.trim() || '一次 2 小时，每周 2 次（示例，请修改）';
+  var form = document.getElementById('pgForm').value.trim() || '线下面授小班（示例，请修改）';
+  var svc = document.getElementById('pgSvc').value.trim();
+  var talk = document.getElementById('pgTalk').value.trim();
+  var doc = document.getElementById('pgDoc').value.trim();
+  var stages = getStages().filter(function(r){return r.some(function(c){return c!==''})});
+
+  var h = '<h2 style="font-size:20px">'+esc(name)+'</h2>';
+  if(slogan) h += '<p style="color:#888">'+esc(slogan)+'</p>';
+  h += '<h3>一、分数进阶体系（从 1100 到 1500 的路径）</h3>';
+  if(stages.length){
+    h += '<table><tr><th>阶段</th><th>入分区间</th><th>目标分</th><th>课时</th><th>周期</th><th>价格</th></tr>';
+    stages.forEach(function(r){ h += '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>'}).join('')+'</tr>'; });
+    h += '</table>';
+    h += '<p style="font-size:13px;color:#666">学生完成一个阶段并通过结课模考后进入下一阶段；按"阶段"报名，家长可只先报第一阶段，目标可量化、风险可控。</p>';
+  }
+  h += '<h3>二、课程参数速览</h3><ul>'
+    + '<li><b>上课安排：</b>'+esc(sched)+'</li>'
+    + '<li><b>形式与教材：</b>'+esc(form)+'</li>';
+  if(svc) h += '<li><b>服务包含：</b>'+esc(svc)+'</li>';
+  h += '</ul>';
+  h += '<h3>三、产品详细介绍</h3>';
+  h += doc
+    ? doc.split(/\n{2,}/).map(function(p){return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'}).join('')
+    : '<p style="color:#999">（此处并入你上传/粘贴的产品介绍文档内容——回到第二步上传后重新生成。）</p>';
+  if(talk){
+    h += '<h3>四、销售话术要点</h3><ul>';
+    talk.split('\n').filter(function(x){return x.trim()}).forEach(function(x){ h += '<li>'+esc(x.trim())+'</li>'; });
+    h += '</ul>';
+  }
+  var out = document.getElementById('pgOut');
+  out.innerHTML = h;
+}
+
+function copyOut(){
+  var t = document.getElementById('pgOut').innerText.trim();
+  if(!t){ alert('请先生成介绍。'); return; }
+  navigator.clipboard.writeText(t).then(function(){alert('已复制全文，可直接粘贴使用。')},
+    function(){ alert('复制失败，请手动全选复制。'); });
+}
+function downloadDoc(){
+  var out = document.getElementById('pgOut');
+  if(!out.innerText.trim()){ alert('请先生成介绍。'); return; }
+  var html = '<html><head><meta charset="utf-8"></head><body style="font-family:微软雅黑;line-height:1.7">'
+    + out.innerHTML + '</body></html>';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/msword'}));
+  a.download = 'SAT综合产品介绍.doc'; a.click();
+}
+function showDocCleared(){ /* 清除提示 */ }
+document.getElementById('pgFile').addEventListener('change', function(e){
+  var f = e.target.files[0]; if(!f) return;
+  if(!/\.(txt|md|markdown|csv)$/i.test(f.name)){
+    alert('暂不支持该格式。Word 文档请打开后全选复制，粘贴到下方文本框即可。');
+    return;
+  }
+  var r = new FileReader();
+  r.onload = function(){ document.getElementById('pgDoc').value = r.result; alert('已读取「'+f.name+'」，内容已放入文本框，可检查后点生成。'); };
+  r.readAsText(f,'utf-8');
+});
+</script>
+</body>
+</html>
